@@ -1,0 +1,9 @@
+{
+  "name": "Portal Concursos",
+  "short_name": "Concursos",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#07111f",
+  "theme_color": "#0b1220",
+  "description": "Portal PWA de preparação para concursos"
+}
