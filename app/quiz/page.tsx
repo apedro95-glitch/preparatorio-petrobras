@@ -24,12 +24,20 @@ const questions = [
 
 export default function Quiz() {
   const [index, setIndex] = useState(0);
-  const [answers, setAnswers] = useState<(number | null)[]>(Array(questions.length).fill(null));
+  const [answers, setAnswers] = useState<(number | null)[]>(
+    Array(questions.length).fill(null)
+  );
   const [finished, setFinished] = useState(false);
 
-  const score = useMemo(() =>
-    answers.reduce((acc, a, i) => acc + (a === questions[i].correct ? 1 : 0), 0),
-  [answers]);
+  const score = useMemo(
+    () =>
+      answers.reduce<number>(
+        (acc, answer, questionIndex) =>
+          acc + (answer === questions[questionIndex].correct ? 1 : 0),
+        0
+      ),
+    [answers]
+  );
 
   function choose(value: number) {
     const next = [...answers];
@@ -37,30 +45,65 @@ export default function Quiz() {
     setAnswers(next);
   }
 
+  function resetQuiz() {
+    setAnswers(Array(questions.length).fill(null));
+    setIndex(0);
+    setFinished(false);
+  }
+
   if (finished) {
     return (
       <>
         <header className="pageHeader">
-          <div><h1>Resultado do mini simulado</h1><p>Correção registrada para análise de desempenho.</p></div>
-        </header>
-        <div className="card quizCard">
-          <div className="grid metrics" style={{gridTemplateColumns:"repeat(3, minmax(0, 1fr))"}}>
-            <div className="metric"><small>Acertos</small><strong>{score}/{questions.length}</strong></div>
-            <div className="metric"><small>Percentual</small><strong>{Math.round(score/questions.length*100)}%</strong></div>
-            <div className="metric"><small>Erros</small><strong>{questions.length-score}</strong></div>
+          <div>
+            <h1>Resultado do mini simulado</h1>
+            <p>Correção registrada para análise de desempenho.</p>
           </div>
-          <div className="list" style={{marginTop:16}}>
-            {questions.map((q,i)=>(
+        </header>
+
+        <div className="card quizCard">
+          <div
+            className="grid metrics"
+            style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }}
+          >
+            <div className="metric">
+              <small>Acertos</small>
+              <strong>{score}/{questions.length}</strong>
+            </div>
+            <div className="metric">
+              <small>Percentual</small>
+              <strong>{Math.round((score / questions.length) * 100)}%</strong>
+            </div>
+            <div className="metric">
+              <small>Erros</small>
+              <strong>{questions.length - score}</strong>
+            </div>
+          </div>
+
+          <div className="list" style={{ marginTop: 16 }}>
+            {questions.map((q, i) => (
               <div className="row" key={q.text}>
-                <div><strong>Questão {i+1}</strong><div className="muted">{q.subject}</div></div>
-                <span className={answers[i]===q.correct ? "pill green" : "pill"}>{answers[i]===q.correct ? "Correta" : "Revisar"}</span>
+                <div>
+                  <strong>Questão {i + 1}</strong>
+                  <div className="muted">{q.subject}</div>
+                </div>
+                <span
+                  className={
+                    answers[i] === q.correct ? "pill green" : "pill"
+                  }
+                >
+                  {answers[i] === q.correct ? "Correta" : "Revisar"}
+                </span>
               </div>
             ))}
           </div>
-          <button className="btn primary" onClick={()=>{setAnswers(Array(questions.length).fill(null)); setIndex(0); setFinished(false)}}>Refazer</button>
+
+          <button className="btn primary" type="button" onClick={resetQuiz}>
+            Refazer
+          </button>
         </div>
       </>
-    )
+    );
   }
 
   const q = questions[index];
@@ -68,8 +111,13 @@ export default function Quiz() {
   return (
     <>
       <header className="pageHeader">
-        <div><h1>Mini simulado</h1><p>Modo prova: a correção aparece somente ao finalizar.</p></div>
-        <span className="badge">Questão {index+1} de {questions.length}</span>
+        <div>
+          <h1>Mini simulado</h1>
+          <p>Modo prova: a correção aparece somente ao finalizar.</p>
+        </div>
+        <span className="badge">
+          Questão {index + 1} de {questions.length}
+        </span>
       </header>
 
       <div className="card quizCard">
@@ -85,25 +133,57 @@ export default function Quiz() {
                 checked={answers[index] === i}
                 onChange={() => choose(i)}
               />
-              <strong>{String.fromCharCode(65+i)})</strong> {opt}
+              <strong>{String.fromCharCode(65 + i)})</strong> {opt}
             </label>
           ))}
         </div>
 
         <div className="answerGrid">
-          {questions.map((_,i)=>(
-            <button className="answerCell" key={i} onClick={()=>setIndex(i)}>
-              {String(i+1).padStart(2,"0")} {answers[i] === null ? "—" : String.fromCharCode(65+answers[i]!)}
-            </button>
-          ))}
+          {questions.map((_, i) => {
+            const selectedAnswer = answers[i];
+
+            return (
+              <button
+                className="answerCell"
+                type="button"
+                key={i}
+                onClick={() => setIndex(i)}
+              >
+                {String(i + 1).padStart(2, "0")}{" "}
+                {selectedAnswer === null
+                  ? "—"
+                  : String.fromCharCode(65 + selectedAnswer)}
+              </button>
+            );
+          })}
         </div>
 
         <div className="actions">
-          <button className="btn" disabled={index===0} onClick={()=>setIndex(Math.max(0,index-1))}>Anterior</button>
-          {index < questions.length-1 ? (
-            <button className="btn primary" onClick={()=>setIndex(index+1)}>Próxima</button>
+          <button
+            className="btn"
+            type="button"
+            disabled={index === 0}
+            onClick={() => setIndex(Math.max(0, index - 1))}
+          >
+            Anterior
+          </button>
+
+          {index < questions.length - 1 ? (
+            <button
+              className="btn primary"
+              type="button"
+              onClick={() => setIndex(index + 1)}
+            >
+              Próxima
+            </button>
           ) : (
-            <button className="btn primary" onClick={()=>setFinished(true)}>Finalizar prova</button>
+            <button
+              className="btn primary"
+              type="button"
+              onClick={() => setFinished(true)}
+            >
+              Finalizar prova
+            </button>
           )}
         </div>
       </div>
