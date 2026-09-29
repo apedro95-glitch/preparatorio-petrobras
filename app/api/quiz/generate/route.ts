@@ -1,10 +1,6 @@
 import OpenAI from "openai";
 import { NextResponse } from "next/server";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
 function cleanJson(text: string) {
   return text
     .trim()
@@ -15,6 +11,16 @@ function cleanJson(text: string) {
 
 export async function POST(request: Request) {
   try {
+    const apiKey = process.env.OPENAI_API_KEY;
+
+    if (!apiKey) {
+      return NextResponse.json(
+        { error: "Tutor IA temporariamente indisponível. Configure os créditos e a chave da API para gerar novas questões." },
+        { status: 503 }
+      );
+    }
+
+    const openai = new OpenAI({ apiKey });
     const body = await request.json();
 
     const discipline = String(body.discipline || "").trim();
@@ -87,9 +93,7 @@ O campo "correct" é índice numérico de 0 a 4.
       .map((q: any, i: number) => ({
         id: String(q.id || `q${i + 1}`),
         text: String(q.text || ""),
-        options: Array.isArray(q.options)
-          ? q.options.map(String).slice(0, 5)
-          : [],
+        options: Array.isArray(q.options) ? q.options.map(String).slice(0, 5) : [],
         correct: Number(q.correct),
         subject: String(q.subject || topic),
         discipline: String(q.discipline || discipline),
@@ -108,20 +112,22 @@ O campo "correct" é índice numérico de 0 a 4.
       );
 
     if (questions.length !== count) {
-      throw new Error(
-        "O Tutor IA retornou uma quantidade inválida de questões."
-      );
+      throw new Error("O Tutor IA retornou uma quantidade inválida de questões.");
     }
 
     return NextResponse.json({ questions });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Erro ao gerar quiz:", error);
 
+    if (error?.status === 429 || error?.code === "credit_balance_exhausted") {
+      return NextResponse.json(
+        { error: "Tutor IA temporariamente indisponível: os créditos da API acabaram. O restante do portal continua funcionando normalmente." },
+        { status: 503 }
+      );
+    }
+
     return NextResponse.json(
-      {
-        error:
-          "Não foi possível gerar as questões agora. Tente novamente."
-      },
+      { error: "Não foi possível gerar as questões agora. Tente novamente." },
       { status: 500 }
     );
   }
