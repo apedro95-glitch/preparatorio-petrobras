@@ -1,12 +1,18 @@
 import OpenAI from "openai";
 import { NextResponse } from "next/server";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
 export async function POST(request: Request) {
   try {
+    const apiKey = process.env.OPENAI_API_KEY;
+
+    if (!apiKey) {
+      return NextResponse.json(
+        { erro: "Tutor IA temporariamente indisponível. Configure os créditos e a chave da API para usar esta função." },
+        { status: 503 }
+      );
+    }
+
+    const openai = new OpenAI({ apiKey });
     const body = await request.json();
     const mensagem = body.mensagem;
 
@@ -19,7 +25,6 @@ export async function POST(request: Request) {
 
     const response = await openai.responses.create({
       model: "gpt-5.6-luna",
-
       instructions: `
 Você é o Tutor IA do Portal Concursos.
 
@@ -48,15 +53,19 @@ IMPORTANTE:
 O aluno deve participar ativamente da resolução.
 Seu papel é ensinar e acompanhar o raciocínio, não apenas fornecer respostas.
 `,
-
       input: mensagem,
     });
 
-    return NextResponse.json({
-      resposta: response.output_text,
-    });
-  } catch (error) {
+    return NextResponse.json({ resposta: response.output_text });
+  } catch (error: any) {
     console.error("Erro Tutor IA:", error);
+
+    if (error?.status === 429 || error?.code === "credit_balance_exhausted") {
+      return NextResponse.json(
+        { erro: "Tutor IA temporariamente indisponível: os créditos da API acabaram. O restante do portal continua funcionando normalmente." },
+        { status: 503 }
+      );
+    }
 
     return NextResponse.json(
       { erro: "Não foi possível obter resposta do Tutor IA." },
